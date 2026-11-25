@@ -12,6 +12,7 @@ var (
 	timeoutFlag string
 	workersFlag string
 	portsFlag   string
+	rateFlag    string
 	onlyMC      bool
 
 	defaultPingTimeout = 5 * time.Second
@@ -35,6 +36,15 @@ func parseWorkers() (int, error) {
 	value, err := strconv.Atoi(workersFlag)
 	if err != nil || value < 1 {
 		return 0, record.FmtError("invalid workers:", workersFlag)
+	}
+	return value, nil
+}
+
+// parseRate returns the -r value, in connections per second.
+func parseRate() (int, error) {
+	value, err := strconv.Atoi(rateFlag)
+	if err != nil || value < 0 || value > 65535 {
+		return 0, record.FmtError("invalid rate:", rateFlag)
 	}
 	return value, nil
 }

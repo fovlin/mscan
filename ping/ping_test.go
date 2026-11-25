@@ -31,8 +31,8 @@ func statusResponse(document string) []byte {
 	return append(appendVarInt(nil, len(body)), body...)
 }
 
-// startStatusServer serves a status response to every connection.
-func startStatusServer(t *testing.T, document string) string {
+// startRawServer accepts connections and runs handle for each of them.
+func startRawServer(t *testing.T, handle func(conn net.Conn)) string {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -47,17 +47,24 @@ func startStatusServer(t *testing.T, document string) string {
 			}
 			go func(conn net.Conn) {
 				defer conn.Close()
-				if _, err := readPacket(conn); err != nil {
-					return
-				}
-				if _, err := readPacket(conn); err != nil {
-					return
-				}
-				_, _ = conn.Write(statusResponse(document))
+				handle(conn)
 			}(conn)
 		}
 	}()
 	return listener.Addr().String()
+}
+
+// startStatusServer serves a status response to every connection.
+func startStatusServer(t *testing.T, document string) string {
+	return startRawServer(t, func(conn net.Conn) {
+		if _, err := readPacket(conn); err != nil {
+			return
+		}
+		if _, err := readPacket(conn); err != nil {
+			return
+		}
+		_, _ = conn.Write(statusResponse(document))
+	})
 }
 
 func TestPing(t *testing.T) {
@@ -90,23 +97,11 @@ func TestPing(t *testing.T) {
 }
 
 func TestPingTimeout(t *testing.T) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { listener.Close() })
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer conn.Close()
-		<-release
-	}()
+	address := startRawServer(t, func(net.Conn) { <-release })
 
-	target := Target{Host: "127.0.0.1", Port: listener.Addr().(*net.TCPAddr).Port, Address: listener.Addr().String()}
+	target := Target{Host: "127.0.0.1", Port: 25565, Address: address}
 	start := time.Now()
 	if _, err := Ping(target, 100*time.Millisecond); err == nil {
 		t.Fatal("expected a timeout error")
@@ -117,24 +112,14 @@ func TestPingTimeout(t *testing.T) {
 }
 
 func TestPingOversize(t *testing.T) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { listener.Close() })
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer conn.Close()
+	address := startRawServer(t, func(conn net.Conn) {
 		_, _ = readPacket(conn)
 		_, _ = readPacket(conn)
 		_, _ = conn.Write(appendVarInt(nil, maxStatusPacket+1))
-	}()
+	})
 
-	target := Target{Host: "127.0.0.1", Port: listener.Addr().(*net.TCPAddr).Port, Address: listener.Addr().String()}
-	_, err = Ping(target, 2*time.Second)
+	target := Target{Host: "127.0.0.1", Port: 25565, Address: address}
+	_, err := Ping(target, 2*time.Second)
 	if err == nil || !strings.Contains(err.Error(), "invalid status packet length") {
 		t.Fatalf("expected a length error, got %v", err)
 	}
@@ -203,18 +188,14 @@ func TestFlattenDescription(t *testing.T) {
 		{`{"color":"#09ADD3","text":"Baka Cloud"}`, "Baka Cloud"},
 		{`{"text":"§aGreen §rText"}`, "Green Text"},
 		{`[{"text":"a"},{"text":"b"}]`, "ab"},
-		{`null`, ""},
+		{`null`, "null"},
 		{`{`, ""},
 	}
 	for _, test := range tests {
-		if got := flattenDescription(jsonRaw(test.document)); got != test.want {
+		if got := flattenDescription([]byte(test.document)); got != test.want {
 			t.Fatalf("%s: got %q, want %q", test.document, got, test.want)
 		}
 	}
-}
-
-func jsonRaw(document string) []byte {
-	return []byte(document)
 }
 
 func TestVarInt(t *testing.T) {

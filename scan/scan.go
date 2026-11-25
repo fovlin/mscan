@@ -17,6 +17,7 @@ type Options struct {
 	Ports   []int
 	Workers int
 	Timeout time.Duration
+	Rate    int // maximum new connections per second, 0 means no limit
 }
 
 // Result is an open port. Status is nil when the port is not a Minecraft
@@ -44,9 +45,23 @@ func Scan(opts Options) <-chan Result {
 		}()
 	}
 
+	// Pace new connections so a scan is not mistaken for a SYN flood and does
+	// not get the source IP banned by the target's anti-scan protection.
 	go func() {
 		defer close(ports)
+		var ticker *time.Ticker
+		if opts.Rate > 0 {
+			interval := time.Second / time.Duration(opts.Rate)
+			if interval <= 0 {
+				interval = time.Nanosecond
+			}
+			ticker = time.NewTicker(interval)
+			defer ticker.Stop()
+		}
 		for _, port := range opts.Ports {
+			if ticker != nil {
+				<-ticker.C
+			}
 			ports <- port
 		}
 	}()

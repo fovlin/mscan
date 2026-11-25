@@ -4,22 +4,23 @@
 
 ```text
 mscan
-├── cmd/     CLI, module acovia.net/mscan
+├── go.mod     module acovia.net/mscan
+├── go.sum
+├── cmd/       CLI
 │   ├── main.go      command table, option registration, dispatch
-│   ├── init.go      shared state, -t/-w/-p parsing, checkArgs, latency formatting
+│   ├── init.go      shared state, -t/-w/-r/-p parsing, checkArgs, latency formatting
 │   ├── help.go      usage text
 │   ├── about.go     about text
 │   ├── ping.go      ping command
 │   ├── scan.go      scan command
 │   └── init_test.go
-├── ping/    status ping, module acovia.net/mscan/ping
+├── ping/      status ping, package acovia.net/mscan/ping
 │   ├── ping.go      Resolve, Ping, ProbeConn
 │   ├── proto.go     VarInts, request building, status parsing, MOTD flattening
 │   └── ping_test.go
-├── scan/    TCP port scanner, module acovia.net/mscan/scan
-│   ├── scan.go      fixed worker pool
+├── scan/      TCP port scanner, package acovia.net/mscan/scan
+│   ├── scan.go      fixed worker pool and rate limiter
 │   └── scan_test.go
-├── go.work
 ├── build.sh
 ├── README.md
 └── DEVELOP.md
@@ -27,9 +28,8 @@ mscan
 
 `cmd` imports `github.com/fovlin/opt` for option parsing and
 `acovia.net/record` for logging. `acovia.net/record` is not published yet, so
-`cmd/go.mod` replaces it with `../../mc-saver/record`; the other modules are
-tied together with local replaces as well, and `go.work` lists the three
-in-repo modules.
+the root `go.mod` replaces it with `../mc-saver/record`; everything else is a
+package of this module.
 
 Build and run from the repository root:
 
@@ -80,19 +80,21 @@ not a Minecraft server.
 `scanCmd` resolves the host once with `net.LookupHost`, dials the resolved IP
 with `net.JoinHostPort`, and sends the original hostname in the handshake so
 servers behind Velocity or BungeeCord route the status request by hostname.
-The command prints only Minecraft servers; `-a/--all-ports` also prints the
-plain open ports, which are otherwise only counted in the summary.
+The command prints every open port; `-o/--only-mc` filters the output to
+Minecraft servers. The summary always counts all open ports.
 
-The default of 256 workers is deliberate. Targets that rate-limit connection
-bursts (game panels, home routers, DDoS filters) drop concurrent dials, so a
-real open port can fail to connect and be reported as closed. Tests on a
-Pterodactyl-style host showed that 1024 workers found about half of its open
-ports, while 256 workers found all of them; raise or lower `-w` with that
-trade-off in mind.
+The default of 256 workers and 128 connections per second is deliberate.
+Targets that rate-limit connection bursts (game panels, home routers, DDoS
+filters) drop concurrent dials, so a real open port can fail to connect and be
+reported as closed, and a sustained scan can get the source IP banned. Tests on
+a Pterodactyl-style host showed that 1024 workers found about half of its open
+ports and triggered an IP ban, while 256 workers found all of them. The rate
+limiter in `Scan` paces new connections with a ticker in the port producer;
+raise or lower `-w` and `-r` with that trade-off in mind.
 
 ## Release
 
-1. Run `gofmt -l`, `go vet ./...` and `go test ./...` in each module.
+1. Run `gofmt -l .`, `go vet ./...` and `go test ./...` at the repository root.
 2. `go build -o mscan ./cmd` and smoke-test `ping`, `scan`, `help` and `about`.
 3. Tag `vX.Y.Z` and push, then run `./build.sh` and attach the archives under
    `build/` to the release.

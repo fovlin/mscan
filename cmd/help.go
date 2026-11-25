@@ -13,8 +13,8 @@ commands:
 
 	scan <host>
 		scan the TCP ports of <host> and identify Minecraft servers.
-		ports defaults to 1-65535, workers to 256 and the timeout to 1s.
-		only Minecraft servers are printed unless -a is given.
+		ports defaults to 1-65535, workers to 256, the rate to 128/s and
+		the timeout to 1s. all open ports are printed unless -o is given.
 
 	ping <host>[:port]
 		query the status of one Minecraft server.
@@ -39,12 +39,16 @@ options:
 		a higher value is faster but can miss ports on hosts that
 		rate-limit connection bursts.
 
+	-r --rate <number>:
+		maximum new connections per second. defaults to 128; 0 means no
+		limit. lower it to stay below a target's anti-scan protection.
+
 	-p --ports <specification>:
 		ports to scan: 25565, 1-1024, or a comma separated list such as
 		1-100,25565. defaults to 1-65535.
 
 	-o --only-mc:
-		only print mc open port.
+		print only Minecraft servers.
 
 	--help:
 		print this help text.

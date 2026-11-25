@@ -35,8 +35,16 @@ func scanCmd() error {
 	if err != nil {
 		return err
 	}
+	rate, err := parseRate()
+	if err != nil {
+		return err
+	}
 
-	record.Info("scanning", host, "("+address+")", "ports", portsFlag, "workers", workers, "timeout", timeout)
+	rateText := fmt.Sprintf("%d/s", rate)
+	if rate == 0 {
+		rateText = "unlimited"
+	}
+	record.Info("scanning", host, "("+address+")", "ports", portsFlag, "workers", workers, "rate", rateText, "timeout", timeout)
 
 	start := time.Now()
 	open, minecraft := 0, 0
@@ -46,6 +54,7 @@ func scanCmd() error {
 		Ports:   ports,
 		Workers: workers,
 		Timeout: timeout,
+		Rate:    rate,
 	})
 	for result := range results {
 		open++

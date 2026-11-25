@@ -37,6 +37,7 @@ func initProgram() error {
 	opt.StringVar(&timeoutFlag, "t", "timeout", "")
 	opt.StringVar(&workersFlag, "w", "workers", "256")
 	opt.StringVar(&portsFlag, "p", "ports", "1-65535")
+	opt.StringVar(&rateFlag, "r", "rate", "128")
 	opt.BoolSwitch(&onlyMC, "o", "only-mc")
 	opt.BoolFunc("", "help", func() {
 		help()

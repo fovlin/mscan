@@ -54,6 +54,23 @@ func closedPort(t *testing.T) int {
 	return port
 }
 
+func TestScanRate(t *testing.T) {
+	closed := closedPort(t)
+	start := time.Now()
+	for range Scan(Options{
+		Address: "127.0.0.1",
+		Host:    "127.0.0.1",
+		Ports:   []int{closed, closed + 1, closed + 2},
+		Workers: 3,
+		Timeout: time.Second,
+		Rate:    10,
+	}) {
+	}
+	if elapsed := time.Since(start); elapsed < 250*time.Millisecond {
+		t.Fatalf("scan was not paced: %v", elapsed)
+	}
+}
+
 func TestScan(t *testing.T) {
 	minecraftPort := startServer(t, true)
 	openPort := startServer(t, false)

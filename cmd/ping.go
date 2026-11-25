@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"acovia.net/mscan/ping"
@@ -22,10 +21,6 @@ func pingCmd() error {
 
 	if target.SRV {
 		record.Info("SRV ->", target.Address)
-	} else if _, _, err := net.SplitHostPort(subCmdArgs[0]); err == nil {
-		record.Info("explicit port given, SRV lookup skipped")
-	} else {
-		record.Info("no SRV record, using port", ping.DefaultPort)
 	}
 	record.Info("ping", subCmdArgs[0], "("+target.Address+")")
 
