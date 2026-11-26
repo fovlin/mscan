@@ -65,7 +65,7 @@ func scanCmd() error {
 			continue
 		}
 		minecraft++
-		record.Printf("tcp/%v\tminecraft\t%v\t%v/%v\t%v\t%v\n",
+		record.Printf("tcp/%v\tminecraft\t%v/%v\t%v\t%v\t%v\n",
 			result.Port,
 			result.Status.Online,
 			result.Status.Max,
