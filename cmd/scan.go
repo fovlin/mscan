@@ -65,11 +65,11 @@ func scanCmd() error {
 			continue
 		}
 		minecraft++
-		record.Printf("%v/tcp\tminecraft\t%v\t%v/%v\t%v\t%v\n",
+		record.Printf("tcp/%v\tminecraft\t%v\t%v/%v\t%v\t%v\n",
 			result.Port,
-			result.Status.Version,
 			result.Status.Online,
 			result.Status.Max,
+			result.Status.Version,
 			oneLine(result.Status.MOTD),
 			formatLatency(result.Status.Latency),
 		)

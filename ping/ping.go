@@ -93,6 +93,7 @@ func Ping(target Target, timeout time.Duration) (*Status, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	status.Latency = time.Since(start)
 	return status, nil
 }
