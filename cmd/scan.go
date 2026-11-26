@@ -60,7 +60,7 @@ func scanCmd() error {
 		open++
 		if result.Status == nil {
 			if !onlyMC {
-				record.Printf("%v/tcp\topen\n", result.Port)
+				record.Printf("tcp/%v\topen\n", result.Port)
 			}
 			continue
 		}
