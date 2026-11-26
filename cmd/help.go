@@ -35,12 +35,12 @@ options:
 		2s or 1m. defaults to 5s for ping and 1s for scan.
 
 	-w --workers <number>:
-		number of ports scanned concurrently. defaults to 256.
+		number of ports scanned concurrently. defaults to 32.
 		a higher value is faster but can miss ports on hosts that
 		rate-limit connection bursts.
 
 	-r --rate <number>:
-		maximum new connections per second. defaults to 128; 0 means no
+		maximum new connections per second. defaults to 4; 0 means no
 		limit. lower it to stay below a target's anti-scan protection.
 
 	-p --ports <specification>:
